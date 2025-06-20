@@ -22,6 +22,9 @@ A console-based bank management system built with Python. It allows users to per
 - Python 3.x
 - MySQL server
 - `mysql-connector-python` package (install via `pip install mysql-connector-python`)
+- `prettytable` package (install via `pip install prettytable`)
+- `stdiomask` package (install via `pip install stdiomask`)
+- `csv` package (install via `pip install python-csv`) 
 
 ### Setup
 
