@@ -47,42 +47,41 @@ def login_and_register():
                     elif user=='1':
                         username=input('Enter your username:')
                         password=stdiomask.getpass('Enter your password:')
-                        cursor.execute("select password from login_and_register where username=%s", (username))
+                        cursor.execute("select password from login_and_register where username=%s", (username,))
                         data=cursor.fetchone()
-                        for row in data:
-                            if row==password:
-                                print('Login successfully \n')
-                                print(f'welcome {username} to our bank')
-                                while True:
-                                    menu()
-                                    ch=input('Enter your Choice:')
-                                    menu_actions = {
-                                        '1': create,
-                                        '2': deposit,
-                                        '3': withdraw,
-                                        '4': balance_enquiry,
-                                        '5': mini_statement,
-                                        '6': display,
-                                        '7': transfer,
-                                        '8': modify,
-                                        '9': close,
-                                        '10': account,
-                                        '11': export_,
-                                        '12': exporttrans,
-                                        '13': lambda: print('Exitting... \n')
-                                    }
+                        if data and data[0] == password:
+                            print('Login successfully \n')
+                            print(f'welcome {username} to our bank')
+                            while True:
+                                menu()
+                                ch=input('Enter your Choice:')
+                                menu_actions = {
+                                    '1': create,
+                                    '2': deposit,
+                                    '3': withdraw,
+                                    '4': balance_enquiry,
+                                    '5': mini_statement,
+                                    '6': display,
+                                    '7': transfer,
+                                    '8': modify,
+                                    '9': close,
+                                    '10': account,
+                                    '11': export_,
+                                    '12': exporttrans,
+                                    '13': lambda: print('Exitting... \n')
+                                }
 
-                                    action = menu_actions.get(ch)
-                                    if action:
-                                        if ch == '13':
-                                            action()
-                                            break
-                                        else:
-                                            action()
+                                action = menu_actions.get(ch)
+                                if action:
+                                    if ch == '13':
+                                        action()
+                                        break
                                     else:
-                                        print('Wrong choice entered \n')
-                            else:
-                                print('Invalid Username and Password \n')
+                                        action()
+                                else:
+                                    print('Wrong choice entered \n')
+                        else:
+                            print('Invalid Username and Password \n')
                             
 
                     elif user=='3':
@@ -144,9 +143,8 @@ def login_and_register():
                     else:
                         print('Wrong choice entered \n')
                         break
-                else:
-                    print('Account not found \n')
-                    break
+            else:
+                print('Account not found \n')
 
         elif user1=='3':
             print('Exiting... \n')
@@ -205,46 +203,62 @@ def create():
 
 def deposit():
     try:
-        accno=int(input('Enter the account number to be deposited:'))
-        balance=float(input('Enter the amount to be deposited:'))
-        trans_desc='deposited'
-        cursor.execute("select balance from bank where accno=%s", (accno))
-        cursor.execute("insert into banktrans(accno,amount,trans_desc) values (%s, %s, %s)", (accno, balance, trans_desc))
-        cursor.execute("update bank set balance=balance+%s where accno=%s", (balance, accno))
-        print('Amount deposited successfully \n')
-        cursor.execute("select balance from bank where accno=%s", (accno))
-        data=cursor.fetchone()
-        for row in data:
-            print('Your New Balance:',row)
-            print('\n')
-    except:
-        print('Account not found \n')
+        accno = int(input('Enter the account number to be deposited:'))
+        cursor.execute("select balance from bank where accno=%s", (accno,))
+        if cursor.fetchone():
+            balance = float(input('Enter the amount to be deposited:'))
+            if balance <= 0:
+                print('Deposit amount must be positive.\n')
+                return
+            trans_desc = 'deposited'
+            cursor.execute("insert into banktrans(accno,amount,trans_desc) values (%s, %s, %s)", (accno, balance, trans_desc))
+            cursor.execute("update bank set balance=balance+%s where accno=%s", (balance, accno))
+            mycon.commit()
+            print('Amount deposited successfully \n')
+            cursor.execute("select balance from bank where accno=%s", (accno,))
+            data = cursor.fetchone()
+            if data:
+                print('Your New Balance:', data[0])
+                print('\n')
+        else:
+            print('Account not found \n')
+    except Exception as e:
+        print('Error:', e)
 
 def withdraw():
     try:
-        print('Note-There should be minimum of 5000 in the account')
-        accno=int(input('Enter the account number to be withdrawn:'))
-        balance=float(input('Enter the amount to be withdrawn:'))
-        trans_desc='withdrawn'
-        cursor.execute("select balance from bank where accno='{}'".format(accno))
-        data=cursor.fetchone()
-        for row in data:
-            if row>=5000:
-                cursor.execute("insert into banktrans(accno,amount,trans_desc)values('{}','{}','{}')".format(accno,balance,trans_desc))
-                cursor.execute("update bank set balance=balance-{} where accno='{}'".format(balance,accno))
-                mycon.commit()
-                print('Amount withdrawn successfully \n')
-                print('Your Remaining Balance:',row)
-            else:
-                print('Insufficient Fund \n')
-    except:
-        print('Account not found \n')
+        accno = int(input('Enter the account number:'))
+        cursor.execute("select balance from bank where accno=%s", (accno,))
+        data = cursor.fetchone()
+        if data:
+            current_balance = data[0]
+            balance = float(input('Enter the amount to be withdrawn:'))
+            if balance <= 0:
+                print('Withdrawal amount must be positive.\n')
+                return
+            if balance > current_balance:
+                print('Insufficient funds.\n')
+                return
+            if current_balance - balance < 5000:
+                print('Cannot withdraw: minimum balance of 5000 must be maintained.\n')
+                return
+            trans_desc = 'withdrawn'
+            cursor.execute("insert into banktrans(accno,amount,trans_desc) values (%s, %s, %s)", (accno, balance, trans_desc))
+            cursor.execute("update bank set balance=balance-%s where accno=%s", (balance, accno))
+            mycon.commit()
+            print('Amount withdrawn successfully \n')
+            cursor.execute("select balance from bank where accno=%s", (accno,))
+            new_balance = cursor.fetchone()
+            print('Your Remaining Balance:', new_balance[0])
+        else:
+            print('Account not found \n')
+    except Exception as e:
+        print('Error:', e)
 
 def balance_enquiry():
     try:
         accno=int(input('Enter the account number:'))
-        query="select balance from bank where accno='{}'".format(accno)
-        cursor.execute(query)
+        cursor.execute("select balance from bank where accno=%s", (accno,))
         data=cursor.fetchone()
         for row in data:
             print('Your Current Balance:',row)
@@ -379,6 +393,7 @@ def close():
         cursor.execute('select accno from bank where accno=%s', (accno,))
         data = cursor.fetchone()
         if data:
+            cursor.execute('select * from bank where accno=%s', (accno,))
             cursor.execute('delete from bank where accno=%s', (accno,))
             mycon.commit()
             print('Account Deleted Successfully \n')
@@ -402,27 +417,26 @@ def account():
 
 def export_():
     print('This file should be in csv or txt, No other file extension should be used')
-    filename=input('Enter the filename to be exported:')
+    filename = input('Enter the filename to be exported:')
     cursor.execute('select * from bank')
-    data=cursor.fetchall()
-    if cursor.rowcount>=1:
-        with open(filename, 'w') as f:
-            f=csv.writer(f)
-            f.writerows(data)
+    data = cursor.fetchall()
+    if cursor.rowcount >= 1:
+        with open(filename, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(data)
             print('File exported successfully \n')
     else:
         print('No results found \n')
 
 def exporttrans():
-    print('This file should be in csv or txt, No other file extension should be used')
-    accno=input('Enter the account number:')
-    filename=input('Enter the filename to be exported:')
-    cursor.execute('select * from banktrans where accno=%s', (accno))
-    data=cursor.fetchall()
-    if cursor.rowcount>=1:
-        with open(filename, 'w') as f:
-            f=csv.writer(f)
-            f.writerows(data)
+    accno = input('Enter the account number:')
+    filename = input('Enter the filename to be exported:')
+    cursor.execute('select * from banktrans where accno=%s', (accno,))
+    data = cursor.fetchall()
+    if cursor.rowcount >= 1:
+        with open(filename, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(data)
             print('File exported successfully \n')
     else:
         print('No results found \n')
