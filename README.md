@@ -26,3 +26,9 @@ A console-based bank management system built with Python. It allows users to per
 ### Setup
 
 1. Clone the repository:
+
+## Note
+
+This project was originally developed in **2021** as a personal learning exercise.  
+It was uploaded to GitHub in **2025** for portfolio and archival purposes.
+
